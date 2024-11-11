@@ -1,0 +1,5 @@
+.tdlib
+.ait.toml
+
+/config/config.yml
+*.db
