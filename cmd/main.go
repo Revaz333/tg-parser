@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"tg-lib/app"
-	"tg-lib/db"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -11,17 +10,12 @@ import (
 
 func main() {
 
-	db, err := db.NewClient()
-	if err != nil {
-		log.Errorf("failed to init db connection: %v", err)
-	}
-
 	config, err := loadConfig()
 	if err != nil {
 		log.Errorf("failed to load config data fromt file: %v", err)
 	}
 
-	app := app.Init(config, db)
+	app := app.Init(config)
 	app.StartAndLoop()
 }
 
