@@ -10,10 +10,10 @@ type (
 	CarResponse struct {
 		Brand        string  `json:"brand"`
 		City         string  `json:"city"`
-		Color        any     `json:"color"`
-		DriveType    any     `json:"driveType"`
+		Color        string  `json:"color"`
+		DriveType    string  `json:"driveType"`
 		EngineVolume float64 `json:"engineVolume"`
-		FuelType     any     `json:"fuelType"`
+		FuelType     string  `json:"fuelType"`
 		Mileage      int     `json:"mileage"`
 		Model        string  `json:"model"`
 		Price        int     `json:"price"`
@@ -23,8 +23,9 @@ type (
 	}
 
 	FinalAdStruct struct {
-		Info     CarResponse `json:"info"`
-		Pictures []Picture   `json:"pictures"`
+		Info        CarResponse `json:"info"`
+		Pictures    []Picture   `json:"pictures"`
+		TGChannelID int64       `json:"tg_channel_id"`
 	}
 
 	Picture struct {

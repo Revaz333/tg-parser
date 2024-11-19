@@ -12,6 +12,14 @@ import (
 type (
 	DBInterface interface {
 		CreateAd(args db.NewAdParams) error
+		FindORCreateMark(title string) (db.Mark, error)
+		FindORCreateModel(title string, markId uint) (db.Model, error)
+		FindORCreateCity(title string) (db.City, error)
+		FindORCreateDriveType(title string) (db.DriveType, error)
+		FindORCreateTransmission(title string) (db.Transmission, error)
+		FindORCreateFuelType(title string) (db.FuelType, error)
+		FindORCreateEngineVolume(volume float64) (db.EngineVolume, error)
+		FindTgChannel(chatId int64) (db.TGChannel, error)
 	}
 	App struct {
 		Config Config

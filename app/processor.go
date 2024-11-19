@@ -23,6 +23,9 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 	)
 
 	for _, msg := range messages {
+
+		finalResult.TGChannelID = msg.Message.ChatID
+
 		if msg.Message.Content.Caption.Text != "" {
 			log.Info("send request to llm")
 
@@ -51,28 +54,16 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 		}
 	}
 
-	images, err := json.Marshal(finalResult.Pictures)
+	ad, err := a.collectAd(finalResult)
 	if err != nil {
-		log.Errorf("failed to encode new ad images data to bytes: %v", err)
+		log.Errorf("failed to collect new ad params: %v", err)
+		return
 	}
 
-	err = a.DB.CreateAd(db.NewAdParams{
-		Images:         images,
-		ReleaseYear:    finalResult.Info.ReleaseYear,
-		Mileage:        finalResult.Info.Mileage,
-		SourceType:     "tg_group",
-		FuelTypeID:     1,
-		MarkID:         1,
-		ModelID:        22,
-		TransmissionID: 1,
-		DriveTypeID:    1,
-		ColorID:        1,
-		CityID:         1,
-		TGChannelID:    2,
-		EngineVolumeID: 24,
-	})
+	err = a.DB.CreateAd(ad)
 	if err != nil {
 		log.Errorf("failed to create new ad: %v", err)
+		return
 	}
 }
 
@@ -105,6 +96,7 @@ func (a App) getPicture(pictureId int) (Picture, error) {
 		return Picture{}, fmt.Errorf("failed to get file from telegram: %v", err)
 	}
 
+	fmt.Println("dddd pict path", filePath)
 	// open downloaded file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -140,5 +132,71 @@ func (a App) getPicture(pictureId int) (Picture, error) {
 		Sizes: Sizes{
 			Small: destFileName,
 		},
+	}, nil
+}
+
+func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
+
+	var (
+		err error
+	)
+
+	imageBytes, err := json.Marshal(args.Pictures)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to marshal pictures data: %v", err)
+	}
+
+	mark, err := a.DB.FindORCreateMark(args.Info.Brand)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get mark: %v", err)
+	}
+
+	model, err := a.DB.FindORCreateModel(args.Info.Model, mark.ID)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get model: %v", err)
+	}
+
+	city, err := a.DB.FindORCreateCity(args.Info.City)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get city: %v", err)
+	}
+
+	driveType, err := a.DB.FindORCreateCity(args.Info.DriveType)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get driveType: %v", err)
+	}
+
+	transmission, err := a.DB.FindORCreateTransmission(args.Info.Transmission)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get transmission: %v", err)
+	}
+
+	fuelType, err := a.DB.FindORCreateFuelType(args.Info.FuelType)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get fuelType: %v", err)
+	}
+
+	engineVolume, err := a.DB.FindORCreateEngineVolume(args.Info.EngineVolume)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get engineVolume: %v", err)
+	}
+
+	tgChannel, err := a.DB.FindTgChannel(args.TGChannelID)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get engineVolume: %v", err)
+	}
+
+	return db.NewAdParams{
+		MarkID:         mark.ID,
+		ModelID:        model.ID,
+		CityID:         city.ID,
+		DriveTypeID:    driveType.ID,
+		TransmissionID: transmission.ID,
+		FuelTypeID:     fuelType.ID,
+		EngineVolumeID: engineVolume.ID,
+		Images:         imageBytes,
+		SourceType:     "tg_group",
+		ColorID:        1,
+		TGChannelID:    tgChannel.ID,
 	}, nil
 }
