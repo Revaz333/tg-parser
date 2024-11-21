@@ -49,15 +49,6 @@ func NewClient(appId int32, appToken string) (*Telegram, error) {
 
 func (c *Telegram) DownloadFile(fileId int32) (string, error) {
 
-	// file, err := c.Client.GetFile(&client.GetFileRequest{
-	// 	FileId: fileId,
-	// })
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to get file: %v", err)
-	// }
-
-	// if !file.Local.IsDownloadingCompleted {
-	// timer := time.Timer
 	file, err := c.Client.DownloadFile(&client.DownloadFileRequest{
 		FileId:   fileId,
 		Priority: 32, // priority for download (higher number -> higher priority)
@@ -66,8 +57,5 @@ func (c *Telegram) DownloadFile(fileId int32) (string, error) {
 		return "", fmt.Errorf("failed to download file: %v", err)
 	}
 
-	// fmt.Println("downloaded", file.Local.IsDownloadingActive)
-	// }
-	// fmt.Println("file.Local.Path", file.Local.Path)
 	return file.Local.Path, nil
 }
