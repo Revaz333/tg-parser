@@ -1,0 +1,10 @@
+.tdlib
+.ait.toml
+
+/config/config.yml
+/config/prompt.json
+*.db
+
+upload
+tmp
+build
