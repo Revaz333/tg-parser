@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/zelenin/go-tdlib/client"
 )
@@ -12,6 +13,7 @@ type Telegram struct {
 }
 
 func NewClient(appId int32, appToken string) (*Telegram, error) {
+
 	authorizer := client.ClientAuthorizer()
 	go client.CliInteractor(authorizer)
 
@@ -48,22 +50,26 @@ func NewClient(appId int32, appToken string) (*Telegram, error) {
 
 func (c *Telegram) DownloadFile(fileId int32) (string, error) {
 
-	file, err := c.Client.GetFile(&client.GetFileRequest{
-		FileId: fileId,
+	_, err := c.Client.DownloadFile(&client.DownloadFileRequest{
+		FileId:   fileId,
+		Priority: 32,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to get file: %v", err)
+		return "", fmt.Errorf("failed to download file with id - %v: %v", fileId, err)
 	}
 
-	if !file.Local.IsDownloadingCompleted {
-		file, err = c.Client.DownloadFile(&client.DownloadFileRequest{
-			FileId:   fileId,
-			Priority: 32, // priority for download (higher number -> higher priority)
+	for {
+		file, err := c.Client.GetFile(&client.GetFileRequest{
+			FileId: fileId,
 		})
 		if err != nil {
-			return "", fmt.Errorf("failed to download file: %v", err)
+			return "", fmt.Errorf("failed to get file with id - %v on local machine while check file download status: %v", fileId, err)
 		}
-	}
 
-	return file.Local.Path, nil
+		if file.Local.IsDownloadingCompleted {
+			return file.Local.Path, nil
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }

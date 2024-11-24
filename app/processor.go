@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"tg-lib/db"
 	"tg-lib/services/llm"
 	"tg-lib/services/telegram"
@@ -15,12 +16,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type PictureDownloadResponse struct {
+	Picture Picture
+	Err     error
+}
+
 func (a App) ProcessMessage(messages []telegram.TGMessage) {
 
 	var (
 		finalResult FinalAdStruct
 		err         error
 	)
+
+	var wg sync.WaitGroup
+	resultCh := make(chan PictureDownloadResponse)
 
 	for _, msg := range messages {
 
@@ -42,16 +51,29 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 			log.Info("get pictures")
 
 			pictureId := msg.Message.Content.Photo.Sizes[len(msg.Message.Content.Photo.Sizes)-1].Photo.ID
-			picture, err := a.getPicture(pictureId)
-			if err != nil {
-				log.Errorf("failed to get message picture with id - %v: %v", pictureId, err)
-				continue
-			}
 
-			finalResult.Pictures = append(finalResult.Pictures, picture)
+			wg.Add(1)
 
-			log.Info("get pictures action done")
+			go func() {
+				defer wg.Done()
+
+				a.getPicture(pictureId, resultCh)
+			}()
 		}
+	}
+
+	go func() {
+		defer close(resultCh)
+		wg.Wait()
+	}()
+
+	for response := range resultCh {
+		if response.Err != nil {
+			log.Errorf("failed to download file: %v", response.Err)
+			continue
+		}
+
+		finalResult.Pictures = append(finalResult.Pictures, response.Picture)
 	}
 
 	ad, err := a.collectAd(finalResult)
@@ -68,6 +90,7 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 }
 
 func (a App) getAdInfo(text string) (CarResponse, error) {
+
 	response, err := a.LLM.Send(
 		llm.Messages{
 			Role: "user",
@@ -89,18 +112,18 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 	return result, nil
 }
 
-func (a App) getPicture(pictureId int) (Picture, error) {
+func (a App) getPicture(pictureId int, resultCh chan PictureDownloadResponse) {
 
 	filePath, err := a.Tdlib.DownloadFile(int32(pictureId))
 	if err != nil {
-		return Picture{}, fmt.Errorf("failed to get file from telegram: %v", err)
+		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to get file from telegram: %v", err)}
+		return
 	}
 
-	fmt.Println("dddd pict path", filePath)
-	// open downloaded file
 	file, err := os.Open(filePath)
 	if err != nil {
-		return Picture{}, fmt.Errorf("failed to open file by path - %s: %v", filePath, err)
+		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to open file by path - %s: %v", filePath, err)}
+		return
 	}
 	defer file.Close()
 
@@ -110,29 +133,33 @@ func (a App) getPicture(pictureId int) (Picture, error) {
 
 	destFile, err := os.Create(destFilePath)
 	if err != nil {
-		return Picture{}, fmt.Errorf("failed to create file by path - %s: %v", destFilePath, err)
+		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to create file by path - %s: %v", destFilePath, err)}
+		return
 	}
 	defer destFile.Close()
 
 	_, err = io.Copy(destFile, file)
 	if err != nil {
-		return Picture{}, fmt.Errorf("failed to copy file data from - %s to %s: %v", filePath, destFilePath, err)
+		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to copy file data from - %s to %s: %v", filePath, destFilePath, err)}
+		return
 	}
 
 	// remove old tile from telegram folder
 	err = os.Remove(filePath)
 	if err != nil {
-		return Picture{}, fmt.Errorf("failed to remote file with path - %s: %v", filePath, err)
+		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to remote file with path - %s: %v", filePath, err)}
+		return
 	}
 
-	return Picture{
-		UpName: destFileName,
-		Type:   "image",
-		Path:   destFilePath,
-		Sizes: Sizes{
-			Small: destFileName,
-		},
-	}, nil
+	resultCh <- PictureDownloadResponse{
+		Picture: Picture{
+			UpName: destFileName,
+			Type:   "image",
+			Path:   destFilePath,
+			Sizes: Sizes{
+				Small: destFileName,
+			},
+		}}
 }
 
 func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
