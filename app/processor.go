@@ -93,8 +93,8 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 
 	response, err := a.LLM.Send(
 		llm.Messages{
-			Role: "user",
-			Text: text,
+			Role:    "user",
+			Сontent: text,
 		},
 	)
 	if err != nil {
@@ -102,7 +102,7 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 	}
 
 	var result CarResponse
-	resultString := strings.ReplaceAll(response.Result.Alternatives[0].Message.Text, "`", "")
+	resultString := strings.ReplaceAll(response.Choices[0].Message.Content, "`", "")
 
 	err = json.Unmarshal([]byte(resultString), &result)
 	if err != nil {
@@ -155,9 +155,9 @@ func (a App) getPicture(pictureId int, resultCh chan PictureDownloadResponse) {
 		Picture: Picture{
 			UpName: destFileName,
 			Type:   "image",
-			Path:   destFilePath,
+			Path:   "/" + destFilePath,
 			Sizes: Sizes{
-				Small: destFileName,
+				Small: "/" + destFilePath,
 			},
 		}}
 }
@@ -188,7 +188,7 @@ func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 		return db.NewAdParams{}, fmt.Errorf("failed to get city: %v", err)
 	}
 
-	driveType, err := a.DB.FindORCreateCity(args.Info.DriveType)
+	driveType, err := a.DB.FindORCreateDriveType(args.Info.DriveType)
 	if err != nil {
 		return db.NewAdParams{}, fmt.Errorf("failed to get driveType: %v", err)
 	}
@@ -208,9 +208,9 @@ func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 		return db.NewAdParams{}, fmt.Errorf("failed to get engineVolume: %v", err)
 	}
 
-	tgChannel, err := a.DB.FindTgChannel(args.TGChannelID)
+	tgChannel, err := a.DB.FindOrCreateTgChannel(args.TGChannelID)
 	if err != nil {
-		return db.NewAdParams{}, fmt.Errorf("failed to get engineVolume: %v", err)
+		return db.NewAdParams{}, fmt.Errorf("failed to get tg channel: %v", err)
 	}
 
 	return db.NewAdParams{
@@ -225,5 +225,9 @@ func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 		SourceType:     "tg_group",
 		ColorID:        1,
 		TGChannelID:    tgChannel.ID,
+		Mileage:        args.Info.Mileage,
+		ReleaseYear:    args.Info.ReleaseYear,
+		Price:          args.Info.Price,
+		IsHidden:       true,
 	}, nil
 }

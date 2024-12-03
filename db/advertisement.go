@@ -143,7 +143,7 @@ func (db DB) FindORCreateEngineVolume(volume float64) (EngineVolume, error) {
 	return engineVolume, nil
 }
 
-func (db DB) FindTgChannel(chatId int64) (TGChannel, error) {
+func (db DB) FindOrCreateTgChannel(chatId int64) (TGChannel, error) {
 
 	var (
 		channel TGChannel
@@ -151,8 +151,14 @@ func (db DB) FindTgChannel(chatId int64) (TGChannel, error) {
 	)
 
 	result := db.Client.Table("tg_channels").Where("chat_id = ?", chat).First(&channel)
-	if result.Error != nil {
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
 		return TGChannel{}, fmt.Errorf("failed to get channel with chatId - %v: %v", chatId, result.Error)
+	} else if result.Error == gorm.ErrRecordNotFound {
+		channel.ChatID = chatId
+		result := db.Client.Table("tg_channels").Create(&channel)
+		if result.Error != nil {
+			return TGChannel{}, fmt.Errorf("failed to create new teleram channel with tg_id - %v: %v", chatId, result.Error)
+		}
 	}
 
 	return channel, nil

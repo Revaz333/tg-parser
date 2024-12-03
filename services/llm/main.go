@@ -11,21 +11,22 @@ import (
 
 type LLM struct {
 	client *resty.Client
+	apiKey string
 }
 
 const (
-	APIhost   = "https://llm.api.cloud.yandex.net/foundationModels/v1"
-	BasePoint = "/completion"
+	BasePoint = "/send-message"
 )
 
-func NewClient(apiKey string) (*LLM, error) {
+func NewClient(apiHost, apiKey string) (*LLM, error) {
 
 	client := resty.New()
-	client.SetBaseURL(APIhost)
-	client.SetAuthScheme("Api-key")
-	client.SetAuthToken(apiKey)
+	client.SetBaseURL(apiHost)
+	// client.SetAuthScheme("Bearer")
+	// client.SetAuthToken(apiKey)
+	// client.SetHeader("Autorization", "Bearer "+apiKey)
 
-	return &LLM{client}, nil
+	return &LLM{client, apiKey}, nil
 }
 
 func (llm LLM) Send(messages Messages) (ChatMessageResponse, error) {
@@ -45,6 +46,7 @@ func (llm LLM) Send(messages Messages) (ChatMessageResponse, error) {
 	chatCompilation.Messages = append(chatCompilation.Messages, messages)
 
 	resp, err := llm.client.R().
+		SetHeader("Authorization", llm.apiKey).
 		SetBody(chatCompilation).
 		Post(BasePoint)
 
@@ -53,7 +55,7 @@ func (llm LLM) Send(messages Messages) (ChatMessageResponse, error) {
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return ChatMessageResponse{}, fmt.Errorf("LLM resturns not %v code: %v", http.StatusOK, resp.Error())
+		return ChatMessageResponse{}, fmt.Errorf("LLM resturns not %v code: %v", http.StatusOK, resp)
 	}
 
 	var response ChatMessageResponse

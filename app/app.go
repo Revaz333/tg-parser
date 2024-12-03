@@ -19,7 +19,7 @@ type (
 		FindORCreateTransmission(title string) (db.Transmission, error)
 		FindORCreateFuelType(title string) (db.FuelType, error)
 		FindORCreateEngineVolume(volume float64) (db.EngineVolume, error)
-		FindTgChannel(chatId int64) (db.TGChannel, error)
+		FindOrCreateTgChannel(chatId int64) (db.TGChannel, error)
 	}
 	App struct {
 		Config Config
@@ -35,7 +35,8 @@ type (
 			StoragePath string
 		}
 		LLM struct {
-			Key string
+			Key     string
+			ApiHost string
 		}
 		DB struct {
 			Dsn string
@@ -50,7 +51,7 @@ func Init(config Config) *App {
 		log.Errorf("failed to init db connection: %v", err)
 	}
 
-	llm, _ := llm.NewClient(config.LLM.Key)
+	llm, _ := llm.NewClient(config.LLM.ApiHost, config.LLM.Key)
 	tglib, err := telegram.NewClient(config.App.ID, config.App.Hash)
 	if err != nil {
 		log.Errorf("failed to init new telegram client: %v", err)

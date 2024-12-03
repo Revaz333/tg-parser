@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"tg-lib/services/telegram"
 	"time"
 
@@ -37,9 +36,9 @@ func (a *App) NewReceiver() error {
 			continue
 		}
 
-		if _, ok := channels[fmt.Sprintf("%v", message.Message.ChatID)]; !ok {
-			continue
-		}
+		// if _, ok := channels[fmt.Sprintf("%v", message.Message.ChatID)]; !ok {
+		// 	continue
+		// }
 
 		fullmessageMap[message.Message.MediaAlbumID] = append(fullmessageMap[message.Message.MediaAlbumID], message)
 		if timer, exists := messageTimer[message.Message.MediaAlbumID]; exists {

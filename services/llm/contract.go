@@ -2,41 +2,51 @@ package llm
 
 type (
 	ChatMessage struct {
-		ModelURI          string            `json:"modelUri"`
-		CompletionOptions CompletionOptions `json:"completionOptions"`
-		Messages          []Messages        `json:"messages"`
+		Model       string     `json:"model"`
+		Messages    []Messages `json:"messages"`
+		Temperature float64    `json:"temperature"`
+		Stream      bool       `json:"stream"`
 	}
-
-	CompletionOptions struct {
-		Stream      bool    `json:"stream"`
-		Temperature float64 `json:"temperature"`
-		MaxTokens   string  `json:"maxTokens"`
-	}
-
 	Messages struct {
-		Role string `json:"role"`
-		Text string `json:"text"`
+		Role    string `json:"role"`
+		Сontent string `json:"content"`
 	}
 
 	ChatMessageResponse struct {
-		Result Result `json:"result"`
+		ID                string    `json:"id"`
+		Object            string    `json:"object"`
+		Created           int       `json:"created"`
+		Model             string    `json:"model"`
+		Choices           []Choices `json:"choices"`
+		Usage             Usage     `json:"usage"`
+		SystemFingerprint string    `json:"system_fingerprint"`
 	}
-	Message struct {
-		Role string `json:"role"`
-		Text string `json:"text"`
+	RespMessage struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+		Refusal any    `json:"refusal"`
 	}
-	Alternatives struct {
-		Message Message `json:"message"`
-		Status  string  `json:"status"`
+	Choices struct {
+		Index        int         `json:"index"`
+		Message      RespMessage `json:"message"`
+		Logprobs     any         `json:"logprobs"`
+		FinishReason string      `json:"finish_reason"`
+	}
+	PromptTokensDetails struct {
+		CachedTokens int `json:"cached_tokens"`
+		AudioTokens  int `json:"audio_tokens"`
+	}
+	CompletionTokensDetails struct {
+		ReasoningTokens          int `json:"reasoning_tokens"`
+		AudioTokens              int `json:"audio_tokens"`
+		AcceptedPredictionTokens int `json:"accepted_prediction_tokens"`
+		RejectedPredictionTokens int `json:"rejected_prediction_tokens"`
 	}
 	Usage struct {
-		InputTextTokens  string `json:"inputTextTokens"`
-		CompletionTokens string `json:"completionTokens"`
-		TotalTokens      string `json:"totalTokens"`
-	}
-	Result struct {
-		Alternatives []Alternatives `json:"alternatives"`
-		Usage        Usage          `json:"usage"`
-		ModelVersion string         `json:"modelVersion"`
+		PromptTokens            int                     `json:"prompt_tokens"`
+		CompletionTokens        int                     `json:"completion_tokens"`
+		TotalTokens             int                     `json:"total_tokens"`
+		PromptTokensDetails     PromptTokensDetails     `json:"prompt_tokens_details"`
+		CompletionTokensDetails CompletionTokensDetails `json:"completion_tokens_details"`
 	}
 )
