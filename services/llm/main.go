@@ -1,8 +1,10 @@
 package llm
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 
@@ -22,23 +24,29 @@ func NewClient(apiHost, apiKey string) (*LLM, error) {
 
 	client := resty.New()
 	client.SetBaseURL(apiHost)
-	// client.SetAuthScheme("Bearer")
-	// client.SetAuthToken(apiKey)
-	// client.SetHeader("Autorization", "Bearer "+apiKey)
 
 	return &LLM{client, apiKey}, nil
 }
 
-func (llm LLM) Send(messages Messages) (ChatMessageResponse, error) {
+func (llm LLM) Send(messages Messages, vars map[string]interface{}) (ChatMessageResponse, error) {
 
 	promptBytes, err := os.ReadFile("config/prompt.json")
 	if err != nil {
 		return ChatMessageResponse{}, fmt.Errorf("failed to read prompt: %v", err)
 	}
 
+	tpl, err := template.New("message_data").Parse(string(promptBytes))
+	if err != nil {
+		return ChatMessageResponse{}, fmt.Errorf("an error occure while parse prompt template: %v", err)
+	}
+
+	var tplBuff bytes.Buffer
+
+	tpl.Execute(&tplBuff, vars)
+
 	var chatCompilation ChatMessage
 
-	err = json.Unmarshal(promptBytes, &chatCompilation)
+	err = json.Unmarshal(tplBuff.Bytes(), &chatCompilation)
 	if err != nil {
 		return ChatMessageResponse{}, fmt.Errorf("failed to decode prompt bytes: %v", err)
 	}
@@ -46,7 +54,7 @@ func (llm LLM) Send(messages Messages) (ChatMessageResponse, error) {
 	chatCompilation.Messages = append(chatCompilation.Messages, messages)
 
 	resp, err := llm.client.R().
-		SetHeader("Authorization", llm.apiKey).
+		SetHeader("Authorization", "Bearer "+llm.apiKey).
 		SetBody(chatCompilation).
 		Post(BasePoint)
 

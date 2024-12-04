@@ -89,12 +89,31 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 	}
 }
 
+type Raplacement struct {
+	Marks  string
+	Models string
+}
+
 func (a App) getAdInfo(text string) (CarResponse, error) {
+
+	marks, err := a.DB.GetMarksList()
+	if err != nil {
+		return CarResponse{}, fmt.Errorf("failed to get marks list: %v", err)
+	}
+
+	models, err := a.DB.GetModelsList()
+	if err != nil {
+		return CarResponse{}, fmt.Errorf("failed to get models list: %v", err)
+	}
 
 	response, err := a.LLM.Send(
 		llm.Messages{
 			Role:    "user",
 			Сontent: text,
+		},
+		map[string]interface{}{
+			"marks":  marks,
+			"modles": models,
 		},
 	)
 	if err != nil {

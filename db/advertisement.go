@@ -163,3 +163,35 @@ func (db DB) FindOrCreateTgChannel(chatId int64) (TGChannel, error) {
 
 	return channel, nil
 }
+
+func (db DB) GetMarksList() ([]string, error) {
+
+	var marks []Mark
+	result := db.Client.Table("marks").Find(&marks)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return []string{}, fmt.Errorf("failed to get marks list: %v", result.Error)
+	}
+
+	var resp []string
+	for _, mark := range marks {
+		resp = append(resp, mark.Title)
+	}
+
+	return resp, nil
+}
+
+func (db DB) GetModelsList() ([]string, error) {
+
+	var models []Model
+	result := db.Client.Table("models").Find(&models)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return []string{}, fmt.Errorf("failed to get models list: %v", result.Error)
+	}
+
+	var resp []string
+	for _, model := range models {
+		resp = append(resp, model.Title)
+	}
+
+	return resp, nil
+}
