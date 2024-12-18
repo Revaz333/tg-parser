@@ -18,6 +18,8 @@ type (
 		FuelTypeID     uint   `json:"fuel_type_id,omitempty"`
 		EngineVolumeID uint   `json:"engine_volume_id,omitempty"`
 		IsHidden       bool   `json:"is_hidden"`
+		Description    string `json:"description"`
+		Phone          string `json:"phone"`
 	}
 
 	Mark struct {
@@ -60,5 +62,10 @@ type (
 	TGChannel struct {
 		ID     uint  `gorm:"primaryKey"`
 		ChatID int64 `json:"chat_id"`
+	}
+
+	Color struct {
+		ID    uint   `gorm:"primaryKey"`
+		Title string `json:"title"`
 	}
 )

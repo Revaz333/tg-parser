@@ -6,15 +6,19 @@ type TGMessage struct {
 	Type     string  `json:"@type"`
 	Message  Message `json:"message"`
 }
+
 type Caption struct {
 	Text string `json:"text"`
 }
+
 type PhotoItem struct {
 	ID int `json:"id"`
 }
+
 type Sizes struct {
 	Photo PhotoItem `json:"photo"`
 }
+
 type Photo struct {
 	ClientID    int     `json:"@client_id"`
 	Extra       string  `json:"@extra"`
@@ -22,6 +26,7 @@ type Photo struct {
 	HasStickers bool    `json:"has_stickers"`
 	Sizes       []Sizes `json:"sizes"`
 }
+
 type Content struct {
 	ClientID   int     `json:"@client_id"`
 	Extra      string  `json:"@extra"`
@@ -31,8 +36,11 @@ type Content struct {
 	IsSecret   bool    `json:"is_secret"`
 	Photo      Photo   `json:"photo"`
 }
+
 type Message struct {
+	ID           int64   `json:"id"`
 	ChatID       int64   `json:"chat_id"`
 	Content      Content `json:"content"`
 	MediaAlbumID string  `json:"media_album_id"`
+	Date         int64   `json:"date"`
 }

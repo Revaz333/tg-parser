@@ -10,11 +10,13 @@ import (
 
 func (a *App) NewReceiver() error {
 
+	// a.Tdlib
 	listener := a.Tdlib.Client.GetListener()
 	defer listener.Close()
 
 	fullmessageMap := make(map[string][]telegram.TGMessage)
 	messageTimer := make(map[string]*time.Timer)
+	// listener.
 
 	for upd := range listener.Updates {
 

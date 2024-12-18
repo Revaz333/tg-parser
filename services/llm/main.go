@@ -52,7 +52,6 @@ func (llm LLM) Send(messages Messages, vars map[string]interface{}) (ChatMessage
 	}
 
 	chatCompilation.Messages = append(chatCompilation.Messages, messages)
-
 	resp, err := llm.client.R().
 		SetHeader("Authorization", "Bearer "+llm.apiKey).
 		SetBody(chatCompilation).

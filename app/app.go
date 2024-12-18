@@ -20,8 +20,8 @@ type (
 		FindORCreateFuelType(title string) (db.FuelType, error)
 		FindORCreateEngineVolume(volume float64) (db.EngineVolume, error)
 		FindOrCreateTgChannel(chatId int64) (db.TGChannel, error)
-		GetMarksList() ([]string, error)
-		GetModelsList() ([]string, error)
+		FindOrCreateColor(title string) (db.Color, error)
+		GetData() (map[string]interface{}, error)
 	}
 	App struct {
 		Config Config

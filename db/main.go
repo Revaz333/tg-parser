@@ -2,13 +2,16 @@ package db
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/patrickmn/go-cache"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 type DB struct {
 	Client *gorm.DB
+	Cache  *cache.Cache
 }
 
 func NewClient(dsn string) (*DB, error) {
@@ -17,5 +20,7 @@ func NewClient(dsn string) (*DB, error) {
 		return &DB{}, fmt.Errorf("failed to create database client: %v", err)
 	}
 
-	return &DB{db}, nil
+	cache := cache.New(24*time.Hour, 24*time.Hour)
+
+	return &DB{db, cache}, nil
 }

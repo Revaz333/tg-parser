@@ -20,6 +20,7 @@ type (
 		ReleaseYear  int     `json:"releaseYear"`
 		Transmission string  `json:"transmission"`
 		Phone        string  `json:"phone"`
+		Description  string  `json:"description"`
 	}
 
 	FinalAdStruct struct {
@@ -29,13 +30,24 @@ type (
 	}
 
 	Picture struct {
+		Date  int64 `json:"date"`
+		Paths Paths `json:"paths"`
+	}
+
+	Paths struct {
 		UpName string `json:"upName"`
 		Type   string `json:"type"`
 		Path   string `json:"path"`
 		Sizes  Sizes  `json:"sizes"`
 	}
+
 	Sizes struct {
 		Small string `json:"small"`
+	}
+
+	NewMessageData struct {
+		Messages    []telegram.TGMessage
+		MessagesIDS []int64
 	}
 )
 

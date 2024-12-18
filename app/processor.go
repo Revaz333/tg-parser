@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"tg-lib/db"
@@ -19,6 +20,11 @@ import (
 type PictureDownloadResponse struct {
 	Picture Picture
 	Err     error
+}
+
+type PictureDownloadBody struct {
+	PictureID   int
+	MessageDate int64
 }
 
 func (a App) ProcessMessage(messages []telegram.TGMessage) {
@@ -50,14 +56,15 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 		if len(msg.Message.Content.Photo.Sizes) != 0 {
 			log.Info("get pictures")
 
-			pictureId := msg.Message.Content.Photo.Sizes[len(msg.Message.Content.Photo.Sizes)-1].Photo.ID
-
 			wg.Add(1)
 
 			go func() {
 				defer wg.Done()
 
-				a.getPicture(pictureId, resultCh)
+				a.getPicture(PictureDownloadBody{
+					MessageDate: msg.Message.Date,
+					PictureID:   msg.Message.Content.Photo.Sizes[len(msg.Message.Content.Photo.Sizes)-1].Photo.ID,
+				}, resultCh)
 			}()
 		}
 	}
@@ -75,6 +82,10 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 
 		finalResult.Pictures = append(finalResult.Pictures, response.Picture)
 	}
+
+	sort.Slice(finalResult.Pictures, func(i, j int) bool {
+		return finalResult.Pictures[i].Date < finalResult.Pictures[j].Date
+	})
 
 	ad, err := a.collectAd(finalResult)
 	if err != nil {
@@ -96,14 +107,9 @@ type Raplacement struct {
 
 func (a App) getAdInfo(text string) (CarResponse, error) {
 
-	marks, err := a.DB.GetMarksList()
+	vars, err := a.DB.GetData()
 	if err != nil {
-		return CarResponse{}, fmt.Errorf("failed to get marks list: %v", err)
-	}
-
-	models, err := a.DB.GetModelsList()
-	if err != nil {
-		return CarResponse{}, fmt.Errorf("failed to get models list: %v", err)
+		return CarResponse{}, fmt.Errorf("failed to get system data: %v", err)
 	}
 
 	response, err := a.LLM.Send(
@@ -111,10 +117,7 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 			Role:    "user",
 			Сontent: text,
 		},
-		map[string]interface{}{
-			"marks":  marks,
-			"modles": models,
-		},
+		vars,
 	)
 	if err != nil {
 		return CarResponse{}, fmt.Errorf("failed to get response from llm: %v", err)
@@ -131,9 +134,9 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 	return result, nil
 }
 
-func (a App) getPicture(pictureId int, resultCh chan PictureDownloadResponse) {
+func (a App) getPicture(pictureData PictureDownloadBody, resultCh chan PictureDownloadResponse) {
 
-	filePath, err := a.Tdlib.DownloadFile(int32(pictureId))
+	filePath, err := a.Tdlib.DownloadFile(int32(pictureData.PictureID))
 	if err != nil {
 		resultCh <- PictureDownloadResponse{Err: fmt.Errorf("failed to get file from telegram: %v", err)}
 		return
@@ -172,22 +175,31 @@ func (a App) getPicture(pictureId int, resultCh chan PictureDownloadResponse) {
 
 	resultCh <- PictureDownloadResponse{
 		Picture: Picture{
-			UpName: destFileName,
-			Type:   "image",
-			Path:   "/" + destFilePath,
-			Sizes: Sizes{
-				Small: "/" + destFilePath,
+			Date: pictureData.MessageDate,
+			Paths: Paths{
+				UpName: destFileName,
+				Type:   "image",
+				Path:   "/" + destFilePath,
+				Sizes: Sizes{
+					Small: "/" + destFilePath,
+				},
 			},
-		}}
+		},
+	}
 }
 
 func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 
 	var (
-		err error
+		err      error
+		pictures []Paths
 	)
 
-	imageBytes, err := json.Marshal(args.Pictures)
+	for _, img := range args.Pictures {
+		pictures = append(pictures, img.Paths)
+	}
+
+	imageBytes, err := json.Marshal(pictures)
 	if err != nil {
 		return db.NewAdParams{}, fmt.Errorf("failed to marshal pictures data: %v", err)
 	}
@@ -232,6 +244,11 @@ func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 		return db.NewAdParams{}, fmt.Errorf("failed to get tg channel: %v", err)
 	}
 
+	color, err := a.DB.FindOrCreateColor(args.Info.Color)
+	if err != nil {
+		return db.NewAdParams{}, fmt.Errorf("failed to get color: %v", err)
+	}
+
 	return db.NewAdParams{
 		MarkID:         mark.ID,
 		ModelID:        model.ID,
@@ -242,11 +259,13 @@ func (a App) collectAd(args FinalAdStruct) (db.NewAdParams, error) {
 		EngineVolumeID: engineVolume.ID,
 		Images:         imageBytes,
 		SourceType:     "tg_group",
-		ColorID:        1,
+		ColorID:        color.ID,
 		TGChannelID:    tgChannel.ID,
 		Mileage:        args.Info.Mileage,
 		ReleaseYear:    args.Info.ReleaseYear,
 		Price:          args.Info.Price,
 		IsHidden:       true,
+		Description:    args.Info.Description,
+		Phone:          args.Info.Phone,
 	}, nil
 }
