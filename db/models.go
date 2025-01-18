@@ -68,4 +68,10 @@ type (
 		ID    uint   `gorm:"primaryKey"`
 		Title string `json:"title"`
 	}
+
+	Moderation struct {
+		ID   uint   `gorm:"primaryKey"`
+		AdID uint   `json:"ad_id"`
+		AD   string `json:"ad"`
+	}
 )

@@ -51,6 +51,11 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 			}
 
 			log.Info("request to llm done")
+
+			if finalResult.Info.Phone == "" || finalResult.Info.Price == 0 {
+				log.Errorf("ad phone or price is empty")
+				return
+			}
 		}
 
 		if len(msg.Message.Content.Photo.Sizes) != 0 {
@@ -81,6 +86,11 @@ func (a App) ProcessMessage(messages []telegram.TGMessage) {
 		}
 
 		finalResult.Pictures = append(finalResult.Pictures, response.Picture)
+	}
+
+	if len(finalResult.Pictures) == 0 {
+		log.Errorf("ad don`t have pictures")
+		return
 	}
 
 	sort.Slice(finalResult.Pictures, func(i, j int) bool {
@@ -123,8 +133,9 @@ func (a App) getAdInfo(text string) (CarResponse, error) {
 		return CarResponse{}, fmt.Errorf("failed to get response from llm: %v", err)
 	}
 
-	var result CarResponse
 	resultString := strings.ReplaceAll(response.Choices[0].Message.Content, "`", "")
+
+	var result CarResponse
 
 	err = json.Unmarshal([]byte(resultString), &result)
 	if err != nil {

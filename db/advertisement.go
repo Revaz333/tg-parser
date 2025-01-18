@@ -3,15 +3,19 @@ package db
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
 
 func (db DB) CreateAd(args NewAdParams) error {
-	result := db.Client.Table("advertisements").Create(&args)
-	if result.Error != nil {
-		return fmt.Errorf("failed to create new ad: %v", result.Error)
+	err := db.Client.Table("advertisements").Create(&args).Error
+	if err != nil {
+		return fmt.Errorf("failed to create new ad: %v", err)
+	}
+
+	err = db.EnableModeration(args.ID)
+	if err != nil {
+		return fmt.Errorf("moderation error: %v", err)
 	}
 
 	return nil
@@ -322,19 +326,33 @@ func (db DB) GetDriveTypesList() ([]string, error) {
 
 func (db DB) GetData() (map[string]interface{}, error) {
 
-	data, found := db.Cache.Get("system_data")
-	if found {
-		return data.(map[string]interface{}), nil
-	}
+	// data, found := db.Cache.Get("system_data")
+	// if found {
+	// 	return data.(map[string]interface{}), nil
+	// }
 
 	data, err := db.CollectData()
 	if err != nil {
 		return map[string]interface{}{}, fmt.Errorf("collext data error: %v", err)
 	}
 
-	db.Cache.Set("system_data", data, 24*time.Hour)
+	// db.Cache.Set("system_data", data, 24*time.Hour)
 
-	return data.(map[string]interface{}), nil
+	return data, nil
+}
+
+func (db DB) EnableModeration(adId uint) error {
+
+	m := Moderation{
+		AdID: adId,
+	}
+
+	err := db.Client.Create(&m).Error
+	if err != nil {
+		return fmt.Errorf("failed to enable moderation on ad with id - %v: %v", adId, err)
+	}
+
+	return nil
 }
 
 func (db DB) CollectData() (map[string]interface{}, error) {

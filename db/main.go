@@ -20,6 +20,13 @@ func NewClient(dsn string) (*DB, error) {
 		return &DB{}, fmt.Errorf("failed to create database client: %v", err)
 	}
 
+	err = db.AutoMigrate(
+		&Moderation{},
+	)
+	if err != nil {
+		return &DB{}, fmt.Errorf("failed to execute migrate action: %v", err)
+	}
+
 	cache := cache.New(24*time.Hour, 24*time.Hour)
 
 	return &DB{db, cache}, nil

@@ -38,9 +38,17 @@ type Content struct {
 }
 
 type Message struct {
-	ID           int64   `json:"id"`
-	ChatID       int64   `json:"chat_id"`
-	Content      Content `json:"content"`
-	MediaAlbumID string  `json:"media_album_id"`
-	Date         int64   `json:"date"`
+	ID           int64    `json:"id"`
+	ChatID       int64    `json:"chat_id"`
+	Content      Content  `json:"content"`
+	MediaAlbumID string   `json:"media_album_id"`
+	Date         int64    `json:"date"`
+	SenderID     SenderID `json:"sender_id"`
+}
+
+type SenderID struct {
+	UserID   int64  `json:"user_id"`
+	ClientID int    `json:"@client_id"`
+	Extra    string `json:"@extra"`
+	Type     string `json:"@type"`
 }

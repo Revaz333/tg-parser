@@ -21,6 +21,7 @@ type (
 		FindORCreateEngineVolume(volume float64) (db.EngineVolume, error)
 		FindOrCreateTgChannel(chatId int64) (db.TGChannel, error)
 		FindOrCreateColor(title string) (db.Color, error)
+		EnableModeration(adId uint) error
 		GetData() (map[string]interface{}, error)
 	}
 	App struct {
